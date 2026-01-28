@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mô phỏng tái bản ADN – SGK</title>
+
+<style>
+body {
+  margin:0;
+  background:black;
+  overflow:hidden;
+  color:white;
+  font-family:Arial;
+}
+#legend {
+  position:fixed;
+  top:10px;
+  left:10px;
+  font-size:14px;
+}
+#ui {
+  position:fixed;
+  top:10px;
+  right:10px;
+}
+button {
+  padding:8px 14px;
+  margin:4px;
+  border:none;
+  border-radius:10px;
+  background:#2ecc71;
+  color:black;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<div id="legend">
+🟡 A &nbsp; 🔵 T &nbsp; 🟥 G &nbsp; 🟢 C<br>
+Nhánh 1: tháo xoắn<br>
+Nhánh 2: mạch khuôn (3' → 5')
+</div>
+
+<div id="ui">
+<button onclick="step=1">Bước 1</button>
+<button onclick="step=2">Bước 2</button>
+<button onclick="step=3">Bước 3</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+
+<script>
+/* ===== SCENE ===== */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+/* CAMERA – CHÍNH DIỆN */
+const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, 0, 14);
+camera.lookAt(0,0,0);
+
+/* RENDER */
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+/* RESIZE */
+window.onresize = ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+};
+
+/* LIGHT */
+scene.add(new THREE.AmbientLight(0xffffff, 1));
+
+/* ===== ADN ===== */
+const branch1 = new THREE.Group();
+const branch2 = new THREE.Group();
+scene.add(branch1, branch2);
+
+for(let i=0;i<14;i++){
+  const y = i - 7;
+
+  const n1 = new THREE.Mesh(
+    new THREE.BoxGeometry(1,1,1),
+    new THREE.MeshStandardMaterial({color:0xf1c40f})
+  );
+  n1.position.set(-2, y, 0);
+  branch1.add(n1);
+
+  const n2 = new THREE.Mesh(
+    new THREE.BoxGeometry(1,1,1),
+    new THREE.MeshStandardMaterial({color:0x3498db})
+  );
+  n2.position.set(2, y, 0);
+  branch2.add(n2);
+}
+
+/* ===== HELICASE ===== */
+const helicase = new THREE.Mesh(
+  new THREE.CylinderGeometry(1.2,1.2,0.8,32),
+  new THREE.MeshStandardMaterial({color:0x7bed9f})
+);
+helicase.rotation.z = Math.PI/2;
+helicase.position.y = -7;
+helicase.visible = false;
+scene.add(helicase);
+
+/* ===== OKAZAKI ===== */
+const okazaki = new THREE.Group();
+for(let i=0;i<4;i++){
+  const f = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8,0.8,0.8),
+    new THREE.MeshStandardMaterial({color:0xff5722})
+  );
+  f.position.set(4,-7-i*1.2,0);
+  okazaki.add(f);
+}
+okazaki.visible = false;
+scene.add(okazaki);
+
+/* ===== STEP ===== */
+let step = 1;
+
+/* ===== ANIMATE ===== */
+function animate(){
+  requestAnimationFrame(animate);
+
+  if(step>=2){
+    helicase.visible = true;
+    helicase.position.y += 0.03;
+    if(helicase.position.y>7) helicase.position.y=-7;
+  } else helicase.visible=false;
+
+  if(step>=3){
+    okazaki.visible=true;
+  } else okazaki.visible=false;
+
+  renderer.render(scene,camera);
+}
+animate();
+</script>
+
+</body>
+</html>
