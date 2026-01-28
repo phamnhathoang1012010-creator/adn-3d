@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>ADN 3D – FIX BLACK SCREEN</title>
+<style>
+body{margin:0;background:black;color:white;font-family:Arial}
+#ui{
+  position:fixed;top:10px;left:50%;
+  transform:translateX(-50%);
+  z-index:10;
+}
+button{
+  padding:8px 14px;
+  border-radius:18px;
+  border:none;
+  background:#222;
+  color:white;
+}
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <button>ADN xoắn 3D</button>
+</div>
+
+<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+/* ===== SCENE ===== */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+/* ===== CAMERA ===== */
+const camera = new THREE.PerspectiveCamera(
+  60,
+  window.innerWidth/window.innerHeight,
+  0.1,
+  1000
+);
+camera.position.set(0, 10, 35);
+camera.lookAt(0,0,0);
+
+/* ===== RENDER ===== */
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+
+/* ===== CONTROLS (CHẠM TAY) ===== */
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.enablePan = false;
+
+/* ===== LIGHT (RẤT QUAN TRỌNG) ===== */
+scene.add(new THREE.AmbientLight(0xffffff,0.6));
+
+const dirLight = new THREE.DirectionalLight(0xffffff,0.8);
+dirLight.position.set(20,30,40);
+scene.add(dirLight);
+
+/* ===== GROUP ADN ===== */
+const dnaGroup = new THREE.Group();
+scene.add(dnaGroup);
+
+/* ===== TẠO ADN XOẮN MƯỢT ===== */
+const radius = 5;
+const height = 26;
+const turns = 6;
+const points = 220;
+
+for(let i=0;i<points;i++){
+  const t = i/points * Math.PI*2*turns;
+  const y = (i/points - 0.5)*height;
+
+  const matA = new THREE.MeshStandardMaterial({color:0xff4444});
+  const matT = new THREE.MeshStandardMaterial({color:0x44ff44});
+
+  const a = new THREE.Mesh(
+    new THREE.SphereGeometry(0.35,16,16),
+    matA
+  );
+  const b = new THREE.Mesh(
+    new THREE.SphereGeometry(0.35,16,16),
+    matT
+  );
+
+  a.position.set(Math.cos(t)*radius, y, Math.sin(t)*radius);
+  b.position.set(Math.cos(t+Math.PI)*radius, y, Math.sin(t+Math.PI)*radius);
+
+  const bond = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06,0.06,radius*2,8),
+    new THREE.MeshStandardMaterial({color:0x888888})
+  );
+  bond.position.y = y;
+  bond.rotation.z = Math.PI/2;
+  bond.rotation.y = t;
+
+  dnaGroup.add(a,b,bond);
+}
+
+/* ===== LOOP ===== */
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene,camera);
+}
+animate();
+
+/* ===== RESIZE ===== */
+window.addEventListener("resize",()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
