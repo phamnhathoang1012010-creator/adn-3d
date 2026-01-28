@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ADN 3D</title>
+<style>
+  body { margin: 0; overflow: hidden; background: black; }
+  .ui {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+  }
+  button {
+    padding: 6px 12px;
+    margin: 2px;
+    border-radius: 8px;
+    border: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="ui">
+  <button onclick="mode='xoan'">Xoắn</button>
+  <button onclick="mode='thao'">Tháo</button>
+  <button onclick="mode='nhan'">Nhân đôi</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+/* SCENE */
+const scene = new THREE.Scene();
+
+/* CAMERA – SỬA LỖI KHÔNG THẤY ADN */
+const camera = new THREE.PerspectiveCamera(
+  60,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+camera.position.set(0, 0, 30);
+camera.lookAt(0, 0, 0);
+
+/* RENDERER */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+
+/* CONTROLS – XOAY BẰNG TAY + CHUỘT */
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.target.set(0, 0, 0);
+controls.update();
+
+/* LIGHT */
+scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(10, 10, 10);
+scene.add(light);
+
+/* ADN */
+const dna = new THREE.Group();
+scene.add(dna);
+
+/* MÀU A T G C */
+const colors = {
+  A: 0xff4444,
+  T: 0x44ff44,
+  G: 0x4444ff,
+  C: 0xffcc00
+};
+
+const bases = ["A", "T", "G", "C"];
+const pairs = { A: "T", T: "A", G: "C", C: "G" };
+
+const radius = 5;
+const step = 0.4;
+const count = 30;
+
+for (let i = 0; i < count; i++) {
+  const base = bases[Math.floor(Math.random() * 4)];
+  const pair = pairs[base];
+
+  const angle = i * 0.5;
+  const y = (i - count / 2) * step;
+
+  const geo = new THREE.SphereGeometry(0.4, 16, 16);
+
+  const left = new THREE.Mesh(
+    geo,
+    new THREE.MeshStandardMaterial({ color: colors[base] })
+  );
+  left.position.set(
+    Math.cos(angle) * radius,
+    y,
+    Math.sin(angle) * radius
+  );
+
+  const right = new THREE.Mesh(
+    geo,
+    new THREE.MeshStandardMaterial({ color: colors[pair] })
+  );
+  right.position.set(
+    -Math.cos(angle) * radius,
+    y,
+    -Math.sin(angle) * radius
+  );
+
+  /* LIÊN KẾT HYDRO */
+  const bondGeo = new THREE.CylinderGeometry(0.08, 0.08, radius * 2, 8);
+  const bond = new THREE.Mesh(
+    bondGeo,
+    new THREE.MeshStandardMaterial({ color: 0xcccccc })
+  );
+  bond.rotation.z = Math.PI / 2;
+  bond.position.y = y;
+
+  dna.add(left, right, bond);
+}
+
+dna.position.set(0, 0, 0);
+
+/* MODE */
+let mode = "xoan";
+
+/* ANIMATE */
+function animate() {
+  requestAnimationFrame(animate);
+
+  if (mode === "xoan") dna.rotation.y += 0.01;
+  if (mode === "thao") dna.scale.x = Math.max(0.5, dna.scale.x - 0.002);
+  if (mode === "nhan") dna.scale.x = Math.min(1.5, dna.scale.x + 0.002);
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+/* RESIZE */
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+
+</body>
+</html>
