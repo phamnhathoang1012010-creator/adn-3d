@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>DNA 3D - NTBS & NTBBT (Fixed)</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #111; }
+    #note {
+      position: absolute;
+      color: #eee;
+      top: 20px;
+      left: 20px;
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 16px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 15px;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+    .legend { font-size: 13px; margin-top: 5px; opacity: 0.8; }
+    .red { color: #ff4d4d; font-weight: bold; }
+    .blue { color: #4d79ff; font-weight: bold; }
+    .yellow { color: #ffcc00; font-weight: bold; }
+    .purple { color: #aa66ff; font-weight: bold; }
+  </style>
+</head>
+<body>
+<div id="note">
+  <strong>Mô hình DNA: NTBS & Tách mạch</strong><br>
+  <div class="legend">
+    <span class="red">A</span> - <span class="blue">T</span> (2 liên kết H)<br>
+    <span class="yellow">G</span> - <span class="purple">C</span> (3 liên kết H)
+  </div>
+  <br>
+  <em>Animation: Xoay &rarr; Tách mạch (NT Bán bảo toàn)</em>
+</div>
+
+<script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.152.2/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.152.2/examples/jsm/"
+    }
+  }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// --- CẤU HÌNH CƠ BẢN ---
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x111111, 0.02); // Thêm sương mù cho chiều sâu
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+camera.position.set(0, 0, 30);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+// --- ÁNH SÁNG ---
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+const mainLight = new THREE.PointLight(0xffffff, 1, 100);
+mainLight.position.set(10, 20, 20);
+scene.add(mainLight);
+const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
+backLight.position.set(-10, -10, -10);
+scene.add(backLight);
+
+// --- DỮ LIỆU DNA ---
+const colors = {
+  A: 0xff4d4d, // Adenine - Đỏ
+  T: 0x4d79ff, // Thymine - Xanh dương
+  G: 0xffcc00, // Guanine - Vàng
+  C: 0xaa66ff  // Cytosine - Tím
+};
+
+const pairs = [ ["A","T"], ["G","C"], ["T","A"], ["C","G"], ["A","T"], ["G","C"] ];
+
+const dnaGroup = new THREE.Group();
+scene.add(dnaGroup);
+
+// Thông số hình học
+const radius = 3.5;       // Bán kính vòng xoắn
+const heightStep = 1.0;   // Khoảng cách giữa các bậc thang
+const rotationStep = 0.5; // Góc xoay mỗi bậc (radian)
+  const totalBasePairs = 24;
+
+const baseGeo = new THREE.SphereGeometry(0.5, 32, 32);
+const bondGeo = new THREE.CylinderGeometry(0.15, 0.15, radius - 0.5, 16); 
+// Xoay bondGeo để nó nằm ngang mặc định khi tạo Mesh
+bondGeo.rotateZ(Math.PI / 2); 
+bondGeo.translate((radius - 0.5)/2, 0, 0); // Dịch tâm để xoay quanh gốc (0,0,0)
+
+// Mảng lưu trữ để animate
+const nucleotidePairs = []; 
+
+for (let i = 0; i < totalBasePairs; i++) {
+  const y = (i - totalBasePairs/2) * heightStep;
+  const angle = i * rotationStep;
+  
+  // Lấy cặp base ngẫu nhiên từ mẫu
+  const pairData = pairs[i % pairs.length];
+  
+  // Tạo một Group con cho mỗi bậc thang (Base Pair)
+  // Điều này giúp quản lý việc tách mạch dễ hơn
+  const pairGroup = new THREE.Group();
+  pairGroup.position.y = y;
+  pairGroup.rotation.y = -angle; // Xoắn lò xo
+  dnaGroup.add(pairGroup);
+
+  // Mạch 1 (Left/Right tùy góc nhìn)
+  const nuc1 = createNucleotide(pairData[0], 1);
+  // Mạch 2 (Đối diện)
+  const nuc2 = createNucleotide(pairData[1], -1);
+  
+  pairGroup.add(nuc1);
+  pairGroup.add(nuc2);
+
+  nucleotidePairs.push({ n1: nuc1, n2: nuc2, originalY: y, angle: angle });
+}
+
+function createNucleotide(type, direction) {
+  const container = new THREE.Group();
+  
+  // 1. Base (Viên bi)
+  const material = new THREE.MeshPhysicalMaterial({
+    color: colors[type],
+    roughness: 0.3,
+    metalness: 0.1,
+    clearcoat: 1.0
+  });
+  const sphere = new THREE.Mesh(baseGeo, material);
+  // Đặt vị trí ban đầu của base (cách tâm 1 khoảng radius)
+  sphere.position.x = direction * radius;
+  
+  // 2. Liên kết Hydro (Một nửa thanh nối)
+  const bondMat = new THREE.MeshStandardMaterial({ color: 0xdddddd });
+  const bond = new THREE.Mesh(bondGeo, bondMat);
+  
+  // Nếu direction = -1 (bên trái), cần xoay thanh nối ngược lại
+  if (direction === -1) {
+    bond.rotation.y = Math.PI;
+  }
+  
+  // Đặt bond dính vào base
+  sphere.add(bond); // Bond là con của Sphere để khi Sphere di chuyển, Bond đi theo
+  container.add(sphere);
+
+  return container;
+}
+
+// --- ANIMATION LOOP ---
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  
+  const time = clock.getElapsedTime();
+  
+  // 1. Xoay cả phân tử DNA
+  dnaGroup.rotation.y = time * 0.2;
+
+  // 2. Hiệu ứng Tách mạch (Mô phỏng NT Bán bảo toàn)
+  // Sử dụng hàm sin để mạch mở ra đóng vào
+  const splitAmount = (Math.sin(time * 0.8) + 1) * 0.5; // Giá trị từ 0 đến 1
+  const separationDistance = splitAmount * 2.5; // Tách ra tối đa 2.5 đơn vị
+
+  nucleotidePairs.forEach(pair => {
+    // Di chuyển mạch 1 ra xa tâm theo trục X cục bộ
+    pair.n1.children[0].position.x = radius + separationDistance;
+    
+    // Di chuyển mạch 2 ra xa tâm theo hướng ngược lại (-X)
+    pair.n2.children[0].position.x = -(radius + separationDistance);
+  });
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// --- RESIZE HANDLER ---
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
