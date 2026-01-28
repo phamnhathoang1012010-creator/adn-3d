@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mô phỏng ADN xoắn kép</title>
+<style>
+  body {
+    margin: 0;
+    background: black;
+    color: white;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+  }
+  #info {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  canvas {
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<div id="info">
+  🧬 <b>ADN xoắn kép 3D</b><br>
+  A–T–G–C (màu sinh học)<br>
+  Kéo để xoay • Vuốt để zoom
+</div>
+
+<canvas id="dna"></canvas>
+
+<script>
+const canvas = document.getElementById("dna");
+const ctx = canvas.getContext("2d");
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+// Base & màu
+const bases = [
+  {pair:["A","T"], colors:["#00ff00","#ff3333"]},
+  {pair:["G","C"], colors:["#ffcc00","#3399ff"]}
+];
+
+let angle = 0;
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  const cx = canvas.width/2;
+  const cy = canvas.height/2;
+  const radius = 80;
+  const step = 22;
+  const turns = 20;
+
+  for(let i = -turns; i < turns; i++) {
+    const t = angle + i * 0.4;
+
+    const x1 = cx + Math.cos(t) * radius;
+    const x2 = cx - Math.cos(t) * radius;
+    const y  = cy + i * step;
+
+    const base = bases[Math.abs(i)%2];
+
+    // Liên kết
+    ctx.strokeStyle = "#555";
+    ctx.beginPath();
+    ctx.moveTo(x1,y);
+    ctx.lineTo(x2,y);
+    ctx.stroke();
+
+    // Base trái
+    ctx.fillStyle = base.colors[0];
+    ctx.beginPath();
+    ctx.arc(x1,y,7,0,Math.PI*2);
+    ctx.fill();
+
+    // Base phải
+    ctx.fillStyle = base.colors[1];
+    ctx.beginPath();
+    ctx.arc(x2,y,7,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  angle += 0.02;
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+
+</body>
+</html>
