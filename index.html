@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>ADN SGK – Liên kết rõ</title>
+<style>
+  body { margin:0; background:black; overflow:hidden; }
+  #label {
+    position:fixed; top:10px; left:10px;
+    color:white; font-family:Arial;
+  }
+</style>
+</head>
+<body>
+
+<div id="label">
+🧬 ADN xoắn kép (SGK)<br>
+🟡 A – 🔵 T | 🟥 G – 🟢 C
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+/* ===== SCENE ===== */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+camera.position.set(0, 0, 30);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+/* ===== LIGHT ===== */
+scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+
+/* ===== MATERIALS ===== */
+const mats = {
+  A: new THREE.MeshStandardMaterial({color:0xf1c40f}),
+  T: new THREE.MeshStandardMaterial({color:0x3498db}),
+  G: new THREE.MeshStandardMaterial({color:0xe74c3c}),
+  C: new THREE.MeshStandardMaterial({color:0x2ecc71}),
+  bond: new THREE.MeshStandardMaterial({color:0xffffff})
+};
+
+/* ===== ADN GROUP ===== */
+const dna = new THREE.Group();
+scene.add(dna);
+
+/* ===== CREATE PAIR ===== */
+function createPair(y, leftMat, rightMat){
+  const r = 0.45;
+  const gap = 4.5; // 🔥 KHOẢNG CÁCH 2 MẠCH (KÉO DÀI ADN)
+
+  // nucleotide trái
+  const left = new THREE.Mesh(
+    new THREE.SphereGeometry(r,32,32),
+    leftMat
+  );
+  left.position.set(-gap, y, 0);
+
+  // nucleotide phải
+  const right = new THREE.Mesh(
+    new THREE.SphereGeometry(r,32,32),
+    rightMat
+  );
+  right.position.set(gap, y, 0);
+
+  // 🔥 THANH TRẮNG DÀI HƠN
+  const bond = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08,0.08,gap*2-0.6,16),
+    mats.bond
+  );
+  bond.rotation.z = Math.PI/2;
+  bond.position.set(0, y, 0);
+
+  dna.add(left, right, bond);
+}
+
+/* ===== BUILD ADN ===== */
+const pairs = [
+  ["G","C"], ["T","A"], ["C","G"],
+  ["A","T"], ["G","C"], ["A","T"]
+];
+
+pairs.forEach((p,i)=>{
+  createPair(6 - i*2.2, mats[p[0]], mats[p[1]]);
+});
+
+/* ===== ANIMATE ===== */
+function animate(){
+  requestAnimationFrame(animate);
+  dna.rotation.y += 0.005; // xoay nhẹ
+  controls.update();
+  renderer.render(scene,camera);
+}
+animate();
+
+/* ===== RESIZE ===== */
+window.onresize = ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+};
+</script>
+
+</body>
+</html>
