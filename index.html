@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Mô phỏng ADN 3D</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+      font-family: Arial, sans-serif;
+    }
+    #ui {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      color: white;
+      background: rgba(0,0,0,0.6);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="ui">
+  🧬 <b>Mô phỏng ADN 3D</b><br>
+  A–T–G–C (màu sinh học)<br>
+  Kéo để xoay – Vuốt để zoom
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(
+  60,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+camera.position.z = 40;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+// Ánh sáng
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const light = new THREE.PointLight(0xffffff, 1);
+light.position.set(20, 20, 20);
+scene.add(light);
+
+// Màu base
+const baseColor = {
+  A: 0x00ff00, // xanh lá
+  T: 0xff0000, // đỏ
+  G: 0xffff00, // vàng
+  C: 0x0066ff  // xanh dương
+};
+
+// Chuỗi ADN (6 cặp ngẫu nhiên)
+const bases = ["A","T","G","C"];
+const pairs = [];
+for (let i = 0; i < 6; i++) {
+  const b = bases[Math.floor(Math.random()*4)];
+  const p = b === "A" ? "T" : b === "T" ? "A" : b === "G" ? "C" : "G";
+  pairs.push([b,p]);
+}
+
+const group = new THREE.Group();
+scene.add(group);
+
+pairs.forEach((pair, i) => {
+  const angle = i * 0.7;
+  const y = i * 2 - 6;
+
+  pair.forEach((base, side) => {
+    const sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(0.6, 32, 32),
+      new THREE.MeshStandardMaterial({ color: baseColor[base] })
+    );
+
+    const radius = 5;
+    const offset = side === 0 ? 0 : Math.PI;
+    sphere.position.set(
+      Math.cos(angle + offset) * radius,
+      y,
+      Math.sin(angle + offset) * radius
+    );
+
+    group.add(sphere);
+  });
+});
+
+// Animation
+function animate() {
+  requestAnimationFrame(animate);
+  group.rotation.y += 0.003;
+  renderer.render(scene, camera);
+}
+
+animate();
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+
+</body>
+</html>
