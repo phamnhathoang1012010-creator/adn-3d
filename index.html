@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mô phỏng tái bản ADN</title>
+<style>
+body {
+  margin: 0;
+  background: black;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+canvas { display:block; }
+
+#panel {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+}
+button {
+  padding: 6px 10px;
+  margin: 2px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button.active {
+  background: #2ecc71;
+  color: black;
+}
+
+#legend {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<div id="legend">
+  🟡 A 🔵 T 🟥 G 🟢 C<br>
+  Nhánh 1: tháo xoắn<br>
+  Nhánh 2: mạch khuôn
+</div>
+
+<div id="panel">
+  <button id="b1" class="active">Nhánh 1</button>
+  <button id="b2" class="active">Nhánh 2</button>
+</div>
+
+<canvas id="scene"></canvas>
+
+<script>
+const canvas = document.getElementById("scene");
+const ctx = canvas.getContext("2d");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+window.onresize = ()=>{
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
+};
+
+const colors = {
+  A:"#f1c40f", T:"#3498db", G:"#e74c3c", C:"#2ecc71"
+};
+
+let showBranch1 = true;
+let showBranch2 = true;
+
+document.getElementById("b1").onclick = ()=>{
+  showBranch1 = !showBranch1;
+  b1.classList.toggle("active");
+};
+document.getElementById("b2").onclick = ()=>{
+  showBranch2 = !showBranch2;
+  b2.classList.toggle("active");
+};
+
+let angle = 0;
+let helicaseY = 300;
+let dir = 1;
+
+function base(x,y,b){
+  ctx.fillStyle = colors[b];
+  ctx.fillRect(x-6,y-6,12,12);
+}
+
+function helicase(x,y){
+  ctx.fillStyle="#7bed9f";
+  ctx.beginPath();
+  ctx.ellipse(x,y,30,12,0,0,Math.PI*2);
+  ctx.fill();
+}
+
+function arrow(x,y,up){
+  ctx.strokeStyle="white";
+  ctx.beginPath();
+  ctx.moveTo(x,y);
+  ctx.lineTo(x,y+(up?-40:40));
+  ctx.stroke();
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const cx = canvas.width/2;
+
+  // ===== NHÁNH 1 =====
+  if(showBranch1){
+    for(let i=0;i<16;i++){
+      let y=150+i*25;
+      let off=Math.sin(i*0.6+angle)*20;
+      base(cx-160+off,y,i%2?"T":"A");
+    }
+    angle+=0.05;
+    helicase(cx,helicaseY);
+    helicaseY+=dir*0.7;
+    if(helicaseY>450||helicaseY<200) dir*=-1;
+    arrow(cx-160,550,true); // 3'→5'
+  }
+
+  // ===== NHÁNH 2 =====
+  if(showBranch2){
+    for(let i=0;i<20;i++){
+      let y=130+i*22;
+      base(cx+160,y,i%2?"C":"G");
+    }
+    for(let i=0;i<5;i++){
+      base(cx+120,220+i*35,"A"); // Okazaki
+    }
+    arrow(cx+160,140,false); // 5'→3'
+  }
+
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>
