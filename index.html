@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>ADN tái bản – mô phỏng SGK</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{margin:0;background:black;color:white;font-family:Arial;overflow:hidden}
+#ui{
+  position:fixed;bottom:10px;left:50%;
+  transform:translateX(-50%);
+  text-align:center
+}
+input{width:260px}
+.label{font-size:14px;margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <div class="label">🔬 Vị trí enzyme helicase</div>
+  <input type="range" id="slider" min="-8" max="8" step="0.1" value="-8">
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+
+<script>
+// ===== SCENE =====
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x000000);
+
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,1000);
+camera.position.set(0,0,35);
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+document.body.appendChild(renderer.domElement);
+
+window.onresize=()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+};
+
+scene.add(new THREE.AmbientLight(0xffffff,0.9));
+
+// ===== MATERIAL =====
+const matA=new THREE.MeshStandardMaterial({color:0xf1c40f}); // A
+const matT=new THREE.MeshStandardMaterial({color:0x3498db}); // T
+const matG=new THREE.MeshStandardMaterial({color:0xe74c3c}); // G
+const matC=new THREE.MeshStandardMaterial({color:0x2ecc71}); // C
+const matLine=new THREE.LineBasicMaterial({color:0x888888});
+
+// ===== HÀM TẠO CẶP BASE =====
+function basePair(y,x1,x2,m1,m2){
+  const g=new THREE.Group();
+  const b1=new THREE.Mesh(new THREE.SphereGeometry(0.45,16,16),m1);
+  const b2=new THREE.Mesh(new THREE.SphereGeometry(0.45,16,16),m2);
+  b1.position.set(x1,y,0);
+  b2.position.set(x2,y,0);
+  const geo=new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(x1,y,0),
+    new THREE.Vector3(x2,y,0)
+  ]);
+  const line=new THREE.Line(geo,matLine);
+  g.add(b1,b2,line);
+  g.b1=b1; g.b2=b2; g.line=line;
+  return g;
+}
+
+// ================= NHÁNH 1: ADN XOẮN QUAY =================
+const dnaSpin=new THREE.Group();
+for(let i=0;i<14;i++){
+  const pair=basePair(i-7,
+    Math.sin(i*0.6)*2.2,
+    Math.sin(i*0.6+Math.PI)*2.2,
+    matA,matT
+  );
+  pair.rotation.y=i*0.6;
+  dnaSpin.add(pair);
+}
+dnaSpin.position.x=-10;
+scene.add(dnaSpin);
+
+// ================= NHÁNH 2: THÁO XOẮN =================
+const dnaOpen=[];
+for(let i=0;i<14;i++){
+  const pair=basePair(i-7,-1.8,1.8,matG,matC);
+  scene.add(pair);
+  dnaOpen.push(pair);
+}
+
+// enzyme helicase (che 2 nucleotide)
+const helicase=new THREE.Mesh(
+  new THREE.BoxGeometry(5,1.2,1.2),
+  new THREE.MeshStandardMaterial({color:0x00ffcc,transparent:true,opacity:0.7})
+);
+scene.add(helicase);
+
+// ================= NHÁNH 3: TỔNG HỢP =================
+const synth=new THREE.Group();
+for(let i=0;i<14;i++){
+  const left=new THREE.Mesh(new THREE.SphereGeometry(0.4,16,16),matA);
+  const right=new THREE.Mesh(new THREE.SphereGeometry(0.4,16,16),matT);
+  left.position.set(6,i-7,0);
+  right.position.set(7,i-7,0);
+  synth.add(left,right);
+}
+scene.add(synth);
+
+// ===== SLIDER =====
+const slider=document.getElementById("slider");
+
+// ===== ANIMATION =====
+function animate(){
+  requestAnimationFrame(animate);
+
+  // ADN nhánh 1 quay
+  dnaSpin.rotation.y+=0.01;
+
+  // enzyme di chuyển
+  helicase.position.y=parseFloat(slider.value);
+
+  // tháo liên kết khi enzyme đi qua
+  dnaOpen.forEach(p=>{
+    const d=Math.abs(p.b1.position.y-helicase.position.y);
+    if(d<0.8){
+      p.b1.position.x=-3;
+      p.b2.position.x=3;
+      p.line.visible=false;
+    }
+  });
+
+  // polymerase gắn nucleotide
+  synth.children.forEach(n=>{
+    if(n.position.y<helicase.position.y){
+      n.position.x=Math.min(n.position.x+0.02,8);
+    }
+  });
+
+  renderer.render(scene,camera);
+}
+animate();
+</script>
+</body>
+</html>
