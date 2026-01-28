@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADN 3D</title>
+
+<style>
+body {
+  margin: 0;
+  overflow: hidden;
+  background: black;
+  color: white;
+  font-family: Arial;
+}
+
+#ui {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+}
+
+button {
+  padding: 8px 14px;
+  background: #222;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 6px;
+}
+
+#sliders {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  display: none;
+}
+
+input {
+  width: 100%;
+}
+</style>
+</head>
+
+<body>
+
+<div id="ui">
+  <button onclick="setMode('spin')">Xoắn</button>
+  <button onclick="setMode('open')">Tháo</button>
+  <button onclick="setMode('copy')">Nhân đôi</button>
+</div>
+
+<div id="sliders">
+  <input id="slider" type="range" min="0" max="100" value="0">
+</div>
+
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js";
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+camera.position.z = 18;
+
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// LIGHT
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+const light = new THREE.PointLight(0xffffff, 1);
+light.position.set(10,10,10);
+scene.add(light);
+
+// ADN
+const dna = new THREE.Group();
+scene.add(dna);
+
+const geo = new THREE.SphereGeometry(0.3, 16, 16);
+const matA = new THREE.MeshStandardMaterial({ color: 0xff5555 });
+const matB = new THREE.MeshStandardMaterial({ color: 0x55aaff });
+const matCopy = new THREE.MeshStandardMaterial({ color: 0x55ff99 });
+
+const chainA = [];
+const chainB = [];
+const copyChain = [];
+
+for(let i=0;i<40;i++){
+  const a = i*0.4;
+  const y = i*0.3 - 6;
+
+  const s1 = new THREE.Mesh(geo, matA);
+  s1.position.set(Math.cos(a)*3, y, Math.sin(a)*3);
+  dna.add(s1);
+  chainA.push(s1);
+
+  const s2 = new THREE.Mesh(geo, matB);
+  s2.position.set(Math.cos(a+Math.PI)*3, y, Math.sin(a+Math.PI)*3);
+  dna.add(s2);
+  chainB.push(s2);
+
+  const c = new THREE.Mesh(geo, matCopy);
+  c.position.copy(s2.position);
+  c.visible = false;
+  dna.add(c);
+  copyChain.push(c);
+}
+
+// MODE
+let mode = "spin";
+const slider = document.getElementById("slider");
+const sliders = document.getElementById("sliders");
+
+window.setMode = m => {
+  mode = m;
+  slider.value = 0;
+  sliders.style.display = (m==="open" || m==="copy") ? "block" : "none";
+
+  copyChain.forEach(c=>c.visible=false);
+  chainA.forEach((s,i)=>s.position.x=Math.cos(i*0.4)*3);
+  chainB.forEach((s,i)=>s.position.x=Math.cos(i*0.4+Math.PI)*3);
+};
+
+// SLIDER LOGIC
+slider.oninput = () => {
+  const t = slider.value / 100;
+
+  if(mode==="open"){
+    chainA.forEach((s,i)=>s.position.x = Math.cos(i*0.4)*3 - t*2);
+    chainB.forEach((s,i)=>s.position.x = Math.cos(i*0.4+Math.PI)*3 + t*2);
+  }
+
+  if(mode==="copy"){
+    copyChain.forEach((c,i)=>{
+      c.visible = t>0;
+      c.position.x = Math.cos(i*0.4+Math.PI)*3 + t*2;
+    });
+  }
+};
+
+// TOUCH ROTATE
+let lastX=0, touching=false;
+addEventListener("touchstart",e=>{touching=true; lastX=e.touches[0].clientX});
+addEventListener("touchmove",e=>{
+  if(!touching) return;
+  const dx=e.touches[0].clientX-lastX;
+  dna.rotation.y+=dx*0.01;
+  lastX=e.touches[0].clientX;
+});
+addEventListener("touchend",()=>touching=false);
+
+// ANIMATE
+function animate(){
+  requestAnimationFrame(animate);
+  if(mode==="spin") dna.rotation.y+=0.01;
+  renderer.render(scene,camera);
+}
+animate();
+
+addEventListener("resize",()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
