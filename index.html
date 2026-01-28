@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Mô phỏng ADN nâng cao</title>
+<style>
+body{
+  background:black;
+  color:white;
+  text-align:center;
+  font-family:Arial;
+}
+button{
+  margin:6px;
+  padding:10px 16px;
+  border-radius:20px;
+  border:none;
+  background:#222;
+  color:white;
+}
+button.active{background:#0aa;}
+canvas{display:block;margin:auto;}
+input{width:280px;}
+</style>
+</head>
+<body>
+
+<h2>🧬 MÔ PHỎNG ADN</h2>
+
+<div>
+  <button onclick="setMode(1,this)">ADN xoắn 360°</button>
+  <button onclick="setMode(2,this)">Tháo xoắn</button>
+  <button onclick="setMode(3,this)">Nhân đôi rDNA</button>
+</div>
+
+<br>
+<input type="range" min="0" max="100" value="0" id="slider">
+
+<canvas id="c" width="360" height="520"></canvas>
+
+<script>
+const ctx=c.getContext("2d");
+const slider=document.getElementById("slider");
+let mode=1;
+
+const pairs=[["A","T"],["G","C"],["A","T"],["G","C"],["A","T"]];
+const color={A:"red",T:"green",G:"dodgerblue",C:"gold"};
+
+function setMode(m,btn){
+  mode=m;
+  slider.value=0;
+  document.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+function pair(x1,y,x2,n1,n2,link=true){
+  if(link){
+    ctx.strokeStyle="#555";
+    ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();
+  }
+  ctx.fillStyle=color[n1];
+  ctx.beginPath();ctx.arc(x1,y,6,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=color[n2];
+  ctx.beginPath();ctx.arc(x2,y,6,0,Math.PI*2);ctx.fill();
+}
+
+function draw(){
+  ctx.clearRect(0,0,360,520);
+  const t=slider.value/100;
+
+  /* ===== NHÁNH 1: XOẮN + ZOOM ===== */
+  if(mode===1){
+    const scale=0.6+t*1.2;
+    const rot=t*Math.PI*2;
+
+    ctx.save();
+    ctx.translate(180,260);
+    ctx.scale(scale,scale);
+    ctx.rotate(rot);
+
+    pairs.forEach((p,i)=>{
+      pair(-50,i*30-60,50,p[0],p[1]);
+    });
+    ctx.restore();
+  }
+
+  /* ===== NHÁNH 2: THÁO XOẮN THUẬN NGHỊCH ===== */
+  if(mode===2){
+    const cut=Math.floor(t*pairs.length);
+
+    pairs.forEach((p,i)=>{
+      const y=160+i*40;
+      pair(120,y,240,p[0],p[1],i>=cut);
+    });
+
+    ctx.fillStyle="orange";
+    ctx.fillRect(100,150+cut*40,160,18);
+  }
+
+  /* ===== NHÁNH 3: rDNA + POLYMERASE ===== */
+  if(mode===3){
+    const build=Math.floor(t*pairs.length);
+
+    pairs.forEach((p,i)=>{
+      const y=160+i*40;
+
+      ctx.fillStyle=color[p[0]];
+      ctx.beginPath();ctx.arc(120,y,6,0,Math.PI*2);ctx.fill();
+
+      if(i<build){
+        ctx.fillStyle=color[p[1]];
+        ctx.beginPath();ctx.arc(240,y,6,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle="#555";
+        ctx.beginPath();ctx.moveTo(120,y);ctx.lineTo(240,y);ctx.stroke();
+      }
+    });
+
+    ctx.fillStyle="cyan";
+    ctx.fillRect(220,150+build*40,30,20);
+  }
+
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>
