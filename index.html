@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Mô phỏng ADN</title>
+<style>
+  body{
+    background:black;
+    color:white;
+    text-align:center;
+    font-family:Arial;
+  }
+  button{
+    margin:6px;
+    padding:10px 16px;
+    font-size:14px;
+    border-radius:20px;
+    border:none;
+    background:#222;
+    color:white;
+  }
+  button.active{ background:#0aa; }
+  canvas{ display:block; margin:auto; }
+</style>
+</head>
+<body>
+
+<h2>🧬 MÔ PHỎNG ADN</h2>
+
+<div>
+  <button onclick="mode=1;setActive(this)">ADN xoắn kép</button>
+  <button onclick="mode=2;setActive(this)">Tháo xoắn</button>
+  <button onclick="mode=3;setActive(this)">Nhân đôi ADN</button>
+</div>
+
+<canvas id="c" width="360" height="520"></canvas>
+
+<script>
+const ctx = c.getContext("2d");
+let mode = 1;
+let angle = 0;
+let step = 0;
+
+const pairs = [["A","T"],["G","C"],["A","T"],["G","C"],["A","T"]];
+const color = {A:"red",T:"green",G:"dodgerblue",C:"gold"};
+
+function setActive(btn){
+  document.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+function drawPair(x1,y,x2,n1,n2,link=true){
+  if(link){
+    ctx.strokeStyle="#555";
+    ctx.beginPath();
+    ctx.moveTo(x1,y);
+    ctx.lineTo(x2,y);
+    ctx.stroke();
+  }
+  ctx.fillStyle=color[n1];
+  ctx.beginPath(); ctx.arc(x1,y,6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=color[n2];
+  ctx.beginPath(); ctx.arc(x2,y,6,0,Math.PI*2); ctx.fill();
+}
+
+function loop(){
+  ctx.clearRect(0,0,360,520);
+
+  /* ===== MODE 1: ADN XOẮN ===== */
+  if(mode===1){
+    ctx.save();
+    ctx.translate(180,260);
+    ctx.rotate(angle);
+    pairs.forEach((p,i)=>{
+      drawPair(-50,i*30-60,50,p[0],p[1]);
+    });
+    ctx.restore();
+    angle += 0.01;
+  }
+
+  /* ===== MODE 2: THÁO XOẮN ===== */
+  if(mode===2){
+    let cut = Math.floor(step/20);
+    pairs.forEach((p,i)=>{
+      let y = 150 + i*40;
+      drawPair(120,y,240,p[0],p[1], i>cut);
+    });
+
+    // helicase
+    ctx.fillStyle="orange";
+    ctx.fillRect(100,140 + cut*40,160,18);
+
+    step++;
+    if(cut>pairs.length) step=0;
+  }
+
+  /* ===== MODE 3: NHÂN ĐÔI ADN ===== */
+  if(mode===3){
+    let pos = Math.floor(step/20);
+
+    pairs.forEach((p,i)=>{
+      let y = 150 + i*40;
+
+      // mạch khuôn
+      ctx.fillStyle=color[p[0]];
+      ctx.beginPath(); ctx.arc(120,y,6,0,Math.PI*2); ctx.fill();
+
+      // nucleotide mới
+      if(i<=pos){
+        ctx.fillStyle=color[p[1]];
+        ctx.beginPath(); ctx.arc(240,y,6,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle="#555";
+        ctx.beginPath();
+        ctx.moveTo(120,y);
+        ctx.lineTo(240,y);
+        ctx.stroke();
+      }
+    });
+
+    // DNA polymerase
+    ctx.fillStyle="cyan";
+    ctx.fillRect(220,140 + pos*40,30,20);
+
+    step++;
+    if(pos>pairs.length) step=0;
+  }
+
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
