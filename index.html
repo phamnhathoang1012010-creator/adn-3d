@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mô phỏng ADN 3D</title>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: black;
+}
+h1 {
+  position: fixed;
+  top: 12px;
+  width: 100%;
+  text-align: center;
+  color: white;
+  font-weight: normal;
+  z-index: 10;
+}
+canvas {
+  display: block;
+}
+</style>
+</head>
+
+<body>
+<h1>Mô phỏng ADN 3D</h1>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+
+<script>
+/* ===== SCENE ===== */
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(
+  70,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  100
+);
+camera.position.z = 8;
+
+/* ===== RENDER ===== */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+/* ===== LIGHT ===== */
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const light = new THREE.PointLight(0xffffff, 1);
+light.position.set(5,5,5);
+scene.add(light);
+
+/* ===== ADN ===== */
+const dna = new THREE.Group();
+scene.add(dna);
+
+const colors = {
+  A: 0xff5555,
+  T: 0x5599ff,
+  G: 0x55ff99,
+  C: 0xffcc55
+};
+
+const bases = ["A","T","G","C"];
+const pairs = 12;
+const radius = 1.6;
+const step = 0.45;
+
+for(let i=0;i<pairs;i++){
+  const angle = i * 0.6;
+  const y = i * step - 2.5;
+
+  const b1 = bases[i % 4];
+  const b2 = b1==="A"?"T":b1==="T"?"A":b1==="G"?"C":"G";
+
+  const geo = new THREE.SphereGeometry(0.18, 16, 16);
+
+  const s1 = new THREE.Mesh(
+    geo,
+    new THREE.MeshStandardMaterial({ color: colors[b1] })
+  );
+  const s2 = new THREE.Mesh(
+    geo,
+    new THREE.MeshStandardMaterial({ color: colors[b2] })
+  );
+
+  s1.position.set(Math.cos(angle)*radius, y, Math.sin(angle)*radius);
+  s2.position.set(-Math.cos(angle)*radius, y, -Math.sin(angle)*radius);
+
+  dna.add(s1, s2);
+
+  const link = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.03,0.03,radius*2,8),
+    new THREE.MeshStandardMaterial({ color: 0xffffff })
+  );
+  link.position.y = y;
+  link.rotation.z = Math.PI/2;
+  link.rotation.y = angle;
+  dna.add(link);
+}
+
+/* ===== XOAY BẰNG TAY ===== */
+let isDragging = false;
+let lastX = 0;
+let lastY = 0;
+
+renderer.domElement.addEventListener("mousedown", e=>{
+  isDragging = true;
+  lastX = e.clientX;
+  lastY = e.clientY;
+});
+renderer.domElement.addEventListener("mouseup", ()=>isDragging=false);
+renderer.domElement.addEventListener("mousemove", e=>{
+  if(!isDragging) return;
+  dna.rotation.y += (e.clientX-lastX)*0.005;
+  dna.rotation.x += (e.clientY-lastY)*0.005;
+  lastX = e.clientX;
+  lastY = e.clientY;
+});
+
+/* TOUCH */
+renderer.domElement.addEventListener("touchstart", e=>{
+  isDragging = true;
+  lastX = e.touches[0].clientX;
+  lastY = e.touches[0].clientY;
+});
+renderer.domElement.addEventListener("touchend", ()=>isDragging=false);
+renderer.domElement.addEventListener("touchmove", e=>{
+  if(!isDragging) return;
+  dna.rotation.y += (e.touches[0].clientX-lastX)*0.005;
+  dna.rotation.x += (e.touches[0].clientY-lastY)*0.005;
+  lastX = e.touches[0].clientX;
+  lastY = e.touches[0].clientY;
+});
+
+/* ===== LOOP ===== */
+function animate(){
+  requestAnimationFrame(animate);
+  dna.rotation.y += 0.003;
+  renderer.render(scene,camera);
+}
+animate();
+
+/* ===== RESIZE ===== */
+window.addEventListener("resize", ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
