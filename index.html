@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<title>ADN 3D</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: black;
+    height: 100%;
+  }
+
+  #ui {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+  }
+
+  button {
+    margin-right: 6px;
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="ui">
+  <button onclick="mode='xoan'">Xoắn</button>
+  <button onclick="mode='thao'">Tháo</button>
+  <button onclick="mode='nhan'">Nhân đôi</button>
+</div>
+
+<!-- THREE.JS -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+/* ================= SCENE ================= */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+/* ================= CAMERA ================= */
+const camera = new THREE.PerspectiveCamera(
+  60,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+camera.position.set(0, 0, 35);
+
+/* ================= RENDERER ================= */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+
+/* ================= CONTROLS ================= */
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+/* ================= LIGHT ================= */
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const light = new THREE.DirectionalLight(0xffffff, 0.8);
+light.position.set(10, 20, 10);
+scene.add(light);
+
+/* ================= ADN ================= */
+const dna = new THREE.Group();
+scene.add(dna);
+
+const pairs = 25;
+const radius = 6;
+
+const colors = {
+  A: 0xff4444,
+  T: 0x44ff44,
+  G: 0x4444ff,
+  C: 0xffff44
+};
+
+for (let i = 0; i < pairs; i++) {
+  const angle = i * 0.45;
+  const y = (i - pairs / 2) * 0.8;
+
+  const base1 = new THREE.Mesh(
+    new THREE.SphereGeometry(0.4, 16, 16),
+    new THREE.MeshStandardMaterial({ color: colors.A })
+  );
+
+  const base2 = base1.clone();
+  base2.material = new THREE.MeshStandardMaterial({ color: colors.T });
+
+  base1.position.set(
+    Math.cos(angle) * radius,
+    y,
+    Math.sin(angle) * radius
+  );
+
+  base2.position.set(
+    Math.cos(angle + Math.PI) * radius,
+    y,
+    Math.sin(angle + Math.PI) * radius
+  );
+
+  const bond = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1, 0.1, radius * 2, 8),
+    new THREE.MeshStandardMaterial({ color: 0xffffff })
+  );
+  bond.rotation.z = Math.PI / 2;
+  bond.position.y = y;
+
+  dna.add(base1, base2, bond);
+}
+
+/* ================= MODE ================= */
+let mode = 'xoan';
+let t = 0;
+
+/* ================= ANIMATE ================= */
+function animate() {
+  requestAnimationFrame(animate);
+
+  t += 0.01;
+
+  if (mode === 'xoan') {
+    dna.rotation.y += 0.01;
+  }
+
+  if (mode === 'thao') {
+    dna.children.forEach((o, i) => {
+      if (o.geometry.type === 'SphereGeometry') {
+        o.position.x *= 1.002;
+      }
+    });
+  }
+
+  if (mode === 'nhan') {
+    dna.scale.setScalar(1 + Math.sin(t) * 0.05);
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+animate();
+
+/* ================= RESIZE ================= */
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+
+</body>
+</html>
